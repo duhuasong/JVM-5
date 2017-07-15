@@ -1,9 +1,7 @@
-#include <iostream>
-
 #include "jvm.h"
 
 static void PrintUsage() {
-  std::cout << "./jvm -Xjre JRE_PATH -cp CLASS_PATH CLASS ARG0 ARG1 ..." << std::endl;
+  std::cout << "./jvm -Xjre JRE_PATH -cp CLASS_PATH CLASS ARG0 ARG1 ...\n";
   return;
 }
 
@@ -19,7 +17,7 @@ static bool CheckEnvs(const std::string& jre_path,
 
 static bool ParseCmd(int argc, char* argv[], std::string& cls,
                      std::string& class_path, std::string& jre_path,
-                     std::string args[], uint8_t& args_num) {
+                     std::vector<std::string>& args) {
   const uint8_t kOptionLoc = 1;
 
   if ((argc < 2) ||
@@ -47,22 +45,37 @@ static bool ParseCmd(int argc, char* argv[], std::string& cls,
     }
   }
 
-  args_num = 0;
   for (int j = 0; cmd_loc < argc; cmd_loc++, j++) {
-    args[j] = argv[cmd_loc];
-    ++args_num;
+    args.push_back(argv[cmd_loc]);
   }
   return true;
+}
+
+JVM::JVM(std::string&& cls, std::string&& class_path, std::string&& jre_path,
+         std::vector<std::string>&& args) :
+    cls_(cls), class_path_(class_path), jre_path_(jre_path), args_(args),
+    class_loader_(new ClassLoader(jre_path_, class_path_))
+ { }
+
+void JVM::Start() {
+  const Class* cls = class_loader_->FindClass(cls_);
+  if (cls == nullptr) {
+#if JVM_DEBUG
+    std::cerr << "JVM::Start cannot find " << cls_ << std::endl;
+#endif
+  }
+
+  // Execute.
+  return;
 }
 
 int main(int argc, char* argv[]) {
   std::string cls;
   std::string class_path;
   std::string jre_path;
-  std::string args[JVM::kMaxArgNum];
-  uint8_t args_num = 0;
+  std::vector<std::string> args;
 
-  if (!ParseCmd(argc, argv, cls, class_path, jre_path, args, args_num)) {
+  if (!ParseCmd(argc, argv, cls, class_path, jre_path, args)) {
     return 0;
   }
 
@@ -74,13 +87,16 @@ int main(int argc, char* argv[]) {
   std::cout << "Start JVM: jre_path=" << jre_path << ", class_path="
             << class_path << ", class=" << cls;
   std::cout << ", args=[";
-  for (int i = 0; i < args_num; i++) {
-    std::cout << args[i] << " ";
+  for (std::string arg : args) {
+    std::cout << arg << " ";
   }
   std::cout << "]" << std::endl;
 #endif
 
   // new JVM and start.
+  JVM jvm(std::move(cls), std::move(class_path), std::move(jre_path),
+          std::move(args));
+  jvm.Start();
 
   return 1;
 }

@@ -6,9 +6,11 @@ LDFLAGS=
 
 EXECUTABLE=jvm
 
-SOURCES=jvm.cc              \
+SOURCES=class.cc           \
+        class_loader.cc    \
+        jvm.cc             \
+        utils.cc           \
 
-EXTRA_HEADERS=utils.h       \
 
 OBJECTS=$(SOURCES:.cc=.o)
 
